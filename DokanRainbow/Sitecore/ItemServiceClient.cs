@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using DokanNet;
     using Newtonsoft.Json;
@@ -40,18 +41,12 @@
                     return cachedItemLists[itemPath].Items;
                 }
 
-                var request = new RestRequest("/sitecore/api/ssc/auth/login", Method.POST);
-                
-                request.AddParameter("domain", this.domain);
-                request.AddParameter("username", this.userName);
-                request.AddParameter("password", this.password);
-                var response = this.client.Execute(request);
-
                 List<FileInformation> result = new List<FileInformation>();
-                if (response.IsSuccessful)
+
+                if (this.EnsureLoggedIn())
                 {
-                    request = new RestRequest($"/sitecore/api/ssc/item/?path={itemPath}&database=core");
-                    response = this.client.Execute(request);
+                    var request = new RestRequest($"/sitecore/api/ssc/item/?path={itemPath}&database=core");
+                    var response = this.client.Execute(request);
 
                     if (response.IsSuccessful)
                     {
@@ -67,20 +62,20 @@
                             foreach (dynamic child in children)
                             {
                                 result.Add(new FileInformation()
-                                    {
-                                        FileName = child.ItemName,
-                                        CreationTime = child.__Created,
-                                        Attributes = FileAttributes.Directory,
-                                        LastWriteTime = child.__Updated,
-                                        Length = child.ToString().ToCharArray().Length
-                                    });
+                                {
+                                    FileName = child.ItemName,
+                                    CreationTime = child.__Created,
+                                    Attributes = FileAttributes.Directory,
+                                    LastWriteTime = child.__Updated,
+                                    Length = child.ToString().ToCharArray().Length
+                                });
                                 result.Add(new FileInformation()
-                                    {
-                                        FileName = $"{child.ItemName}.yml",
-                                        CreationTime = child.__Created,
-                                        Attributes = FileAttributes.Normal,
-                                        LastWriteTime = child.__Updated,
-                                        Length = child.ToString().ToCharArray().Length
+                                {
+                                    FileName = $"{child.ItemName}.yml",
+                                    CreationTime = child.__Created,
+                                    Attributes = FileAttributes.Normal,
+                                    LastWriteTime = child.__Updated,
+                                    Length = child.ToString().ToCharArray().Length
                                 });
                             }
 
@@ -112,6 +107,24 @@
             }
 
             return $"/sitecore{result}".TrimEnd(new[] { '/' });
+        }
+        
+        private bool EnsureLoggedIn()
+        {
+            // Check if we are already logged in
+            if (this.client.CookieContainer.GetCookies(this.client.BaseUrl)[".ASPXAUTH"]?.Expired ?? true)
+            {
+                var request = new RestRequest("/sitecore/api/ssc/auth/login", Method.POST);
+
+                request.AddParameter("domain", this.domain);
+                request.AddParameter("username", this.userName);
+                request.AddParameter("password", this.password);
+
+                var response = this.client.Execute(request);
+                return response.IsSuccessful;
+            }
+
+            return true;
         }
     }
 }
