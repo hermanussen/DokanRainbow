@@ -51,6 +51,34 @@
         public NtStatus GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
             fileInfo = new FileInformation();
+            var itemPath = PathUtil.GetItemPath(fileName);
+            dynamic item = this.itemServiceClient.GetItem(itemPath.path);
+            if (item != null)
+            {
+                if (fileName.EndsWith(".yml"))
+                {
+                    fileInfo = new FileInformation()
+                        {
+                            FileName = $"{item.ItemName?.Value}.yml",
+                            CreationTime = item.__Created,
+                            Attributes = FileAttributes.Normal,
+                            LastWriteTime = item.__Updated,
+                            Length = item.ToString().ToCharArray().Length
+                        };
+                }
+                else
+                {
+                    fileInfo = new FileInformation()
+                        {
+                            FileName = item.ItemName?.Value,
+                            CreationTime = item.__Created,
+                            Attributes = FileAttributes.Directory,
+                            LastWriteTime = item.__Updated,
+                            Length = item.ToString().ToCharArray().Length
+                        };
+                }
+            }
+
             return NtStatus.Success;
         }
 
@@ -59,9 +87,66 @@
             return this.FindFilesWithPattern(fileName, "*", out files, info);
         }
 
+        private List<string> logs = new List<string>();
+
         public NtStatus FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
         {
-            files = this.itemServiceClient.FindFilesWithPattern(fileName, searchPattern);
+            files = new List<FileInformation>();
+
+            var itemPath = PathUtil.GetItemPath(fileName, searchPattern);
+            if (itemPath.childrenOf)
+            {
+                var children = this.itemServiceClient.GetChildren(itemPath.path);
+                foreach (dynamic child in children)
+                {
+                    files.Add(new FileInformation()
+                    {
+                        FileName = child.ItemName?.Value,
+                        CreationTime = child.__Created,
+                        Attributes = FileAttributes.Directory,
+                        LastWriteTime = child.__Updated,
+                        Length = child.ToString().ToCharArray().Length
+                    });
+                    files.Add(new FileInformation()
+                    {
+                        FileName = $"{child.ItemName?.Value}.yml",
+                        CreationTime = child.__Created,
+                        Attributes = FileAttributes.Normal,
+                        LastWriteTime = child.__Updated,
+                        Length = child.ToString().ToCharArray().Length
+                    });
+                }
+            }
+            else
+            {
+                dynamic item = this.itemServiceClient.GetItem(itemPath.path);
+                if (item != null)
+                {
+                    if (searchPattern.EndsWith(".yml"))
+                    {
+                        files.Add(new FileInformation()
+                        {
+                            FileName = $"{item.ItemName?.Value}.yml",
+                            CreationTime = item.__Created,
+                            Attributes = FileAttributes.Normal,
+                            LastWriteTime = item.__Updated,
+                            Length = item.ToString().ToCharArray().Length
+                        });
+                    }
+                    else
+                    {
+                        files.Add(new FileInformation()
+                        {
+                            FileName = item.ItemName?.Value,
+                            CreationTime = item.__Created,
+                            Attributes = FileAttributes.Directory,
+                            LastWriteTime = item.__Updated,
+                            Length = item.ToString().ToCharArray().Length
+                        });
+                    }
+                }
+            }
+
             return NtStatus.Success;
         }
 

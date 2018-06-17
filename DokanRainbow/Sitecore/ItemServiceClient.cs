@@ -2,10 +2,8 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using System.Net;
-    using DokanNet;
     using Newtonsoft.Json;
     using RestSharp;
 
@@ -31,82 +29,41 @@
                 };
         }
         
-        public IList<FileInformation> FindFilesWithPattern(string fileName, string searchPattern)
+        public IEnumerable<dynamic> GetChildren(string itemPath)
         {
-            string itemPath = GetItemPath(fileName, searchPattern);
-            lock (cachedItemLists)
+            dynamic item = GetItem(itemPath);
+            if (item != null)
             {
-                if (cachedItemLists.ContainsKey(itemPath) && !cachedItemLists[itemPath].IsExpired)
+                string itemId = item.ItemID.Value;
+
+                var request = new RestRequest($"/sitecore/api/ssc/item/{itemId}/children?database=core");
+                var response = this.client.Execute(request);
+
+                if (response.IsSuccessful)
                 {
-                    return cachedItemLists[itemPath].Items;
-                }
-
-                List<FileInformation> result = new List<FileInformation>();
-
-                if (this.EnsureLoggedIn())
-                {
-                    var request = new RestRequest($"/sitecore/api/ssc/item/?path={itemPath}&database=core");
-                    var response = this.client.Execute(request);
-
-                    if (response.IsSuccessful)
+                    dynamic children = JsonConvert.DeserializeObject(response.Content);
+                    foreach (dynamic child in children)
                     {
-                        dynamic item = JsonConvert.DeserializeObject(response.Content);
-                        string itemId = item.ItemID.Value;
-
-                        request = new RestRequest($"/sitecore/api/ssc/item/{itemId}/children?database=core");
-                        response = this.client.Execute(request);
-
-                        if (response.IsSuccessful)
-                        {
-                            dynamic children = JsonConvert.DeserializeObject(response.Content);
-                            foreach (dynamic child in children)
-                            {
-                                result.Add(new FileInformation()
-                                {
-                                    FileName = child.ItemName,
-                                    CreationTime = child.__Created,
-                                    Attributes = FileAttributes.Directory,
-                                    LastWriteTime = child.__Updated,
-                                    Length = child.ToString().ToCharArray().Length
-                                });
-                                result.Add(new FileInformation()
-                                {
-                                    FileName = $"{child.ItemName}.yml",
-                                    CreationTime = child.__Created,
-                                    Attributes = FileAttributes.Normal,
-                                    LastWriteTime = child.__Updated,
-                                    Length = child.ToString().ToCharArray().Length
-                                });
-                            }
-
-                            cachedItemLists[itemPath] = new CachedItemList(result);
-                        }
+                        yield return child;
                     }
                 }
-
-                return result;
             }
         }
 
-        public string GetItemPath(string filePath, string searchPattern)
+        public dynamic GetItem(string itemPath)
         {
-            if (string.IsNullOrEmpty(filePath) || string.IsNullOrWhiteSpace(searchPattern))
+            if (this.EnsureLoggedIn())
             {
-                return "/sitecore";
+                var request = new RestRequest($"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&database=core");
+                var response = this.client.Execute(request);
+
+                if (response.IsSuccessful)
+                {
+                    return JsonConvert.DeserializeObject(response.Content);
+                }
             }
 
-            string result = filePath.Replace(@"\", "/");
-            if (!"*".Equals(searchPattern))
-            {
-                result = $"{result}/{searchPattern}";
-            }
-
-            if (result.StartsWith("/sitecore"))
-            {
-                result = result.Substring(9);
-            }
-
-            return $"/sitecore{result}".TrimEnd(new[] { '/' });
+            return null;
         }
         
         private bool EnsureLoggedIn()

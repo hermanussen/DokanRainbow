@@ -63,6 +63,7 @@
     <Compile Include="Rainbow.cs" />
     <Compile Include="Sitecore\CachedItemList.cs" />
     <Compile Include="Sitecore\ItemServiceClient.cs" />
+    <Compile Include="Sitecore\PathUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

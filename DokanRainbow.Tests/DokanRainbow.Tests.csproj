@@ -59,7 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Sitecore\ItemServiceClientTest.cs" />
+    <Compile Include="Sitecore\PathUtilTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
