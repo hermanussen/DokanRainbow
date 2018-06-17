@@ -19,7 +19,7 @@ namespace DokanRainbow
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
                 
                 var rainbow = new Rainbow("https://localhost/", "sitecore", "admin", "c");
-                rainbow.Mount("n:\\", DokanOptions.DebugMode, 5);
+                rainbow.Mount("s:\\", DokanOptions.DebugMode, 5);
 
                 Console.WriteLine(@"Success");
             }

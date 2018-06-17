@@ -50,7 +50,7 @@
                 List<FileInformation> result = new List<FileInformation>();
                 if (response.IsSuccessful)
                 {
-                    request = new RestRequest($"/sitecore/api/ssc/item/?path={itemPath}&database=master");
+                    request = new RestRequest($"/sitecore/api/ssc/item/?path={itemPath}&database=core");
                     response = this.client.Execute(request);
 
                     if (response.IsSuccessful)
@@ -58,7 +58,7 @@
                         dynamic item = JsonConvert.DeserializeObject(response.Content);
                         string itemId = item.ItemID.Value;
 
-                        request = new RestRequest($"/sitecore/api/ssc/item/{itemId}/children?database=master");
+                        request = new RestRequest($"/sitecore/api/ssc/item/{itemId}/children?database=core");
                         response = this.client.Execute(request);
 
                         if (response.IsSuccessful)
@@ -71,6 +71,14 @@
                                         FileName = child.ItemName,
                                         CreationTime = child.__Created,
                                         Attributes = FileAttributes.Directory,
+                                        LastWriteTime = child.__Updated,
+                                        Length = child.ToString().ToCharArray().Length
+                                    });
+                                result.Add(new FileInformation()
+                                    {
+                                        FileName = $"{child.ItemName}.yml",
+                                        CreationTime = child.__Created,
+                                        Attributes = FileAttributes.Normal,
                                         LastWriteTime = child.__Updated,
                                         Length = child.ToString().ToCharArray().Length
                                 });
