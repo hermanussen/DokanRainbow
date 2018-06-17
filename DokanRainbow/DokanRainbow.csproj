@@ -61,7 +61,6 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rainbow.cs" />
-    <Compile Include="Sitecore\CachedItemList.cs" />
     <Compile Include="Sitecore\ItemServiceClient.cs" />
     <Compile Include="Sitecore\PathUtil.cs" />
   </ItemGroup>

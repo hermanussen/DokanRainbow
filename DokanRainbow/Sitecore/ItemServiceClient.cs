@@ -15,14 +15,11 @@
 
         private readonly RestClient client;
 
-        private readonly IDictionary<string, CachedItemList> cachedItemLists;
-
         public ItemServiceClient(string instanceUrl, string domain, string userName, string password)
         {
             this.domain = domain;
             this.userName = userName;
             this.password = password;
-            this.cachedItemLists = new Dictionary<string, CachedItemList>();
             this.client = new RestClient(instanceUrl)
                 {
                     CookieContainer = new CookieContainer()
