@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Security.AccessControl;
+    using System.Text;
     using DokanNet;
     using DokanRainbow.Sitecore;
     using FileAccess = DokanNet.FileAccess;
@@ -33,7 +35,10 @@
 
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
-            bytesRead = 0;
+            var bytes = Encoding.UTF8.GetBytes("todo: file contents");
+            var sourceArray = bytes.Skip(Convert.ToInt32(offset)).Take(buffer.Length).ToArray();
+            Array.Copy(sourceArray, buffer, sourceArray.Length);
+            bytesRead = sourceArray.Length;
             return NtStatus.Success;
         }
 
