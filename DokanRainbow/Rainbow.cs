@@ -8,6 +8,8 @@
     using System.Text;
     using DokanNet;
     using DokanRainbow.Sitecore;
+    using global::Rainbow.Storage.Sc;
+    using global::Rainbow.Storage.Yaml;
     using FileAccess = DokanNet.FileAccess;
 
     internal class Rainbow : IDokanOperations
@@ -35,11 +37,25 @@
 
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
-            var bytes = Encoding.UTF8.GetBytes("todo: file contents");
-            var sourceArray = bytes.Skip(Convert.ToInt32(offset)).Take(buffer.Length).ToArray();
-            Array.Copy(sourceArray, buffer, sourceArray.Length);
-            bytesRead = sourceArray.Length;
-            return NtStatus.Success;
+            var itemPath = PathUtil.GetItemPath(fileName);
+            dynamic item = this.itemServiceClient.GetItem(itemPath.path);
+            if (item != null && fileName.EndsWith(".yml"))
+            {
+                var memoryStream = new MemoryStream();
+                var itemData = new ItemServiceItemData(item)
+                    {
+                        DatabaseName = "core"
+                    };
+                new YamlSerializationFormatter(null, null).WriteSerializedItem(itemData, memoryStream);
+
+                memoryStream.Position = 0;
+                int read = memoryStream.Read(buffer, Convert.ToInt32(offset), Convert.ToInt32(memoryStream.Length - offset));
+                bytesRead = read;
+                return NtStatus.Success;
+            }
+
+            bytesRead = 0;
+            return NtStatus.FileInvalid;
         }
 
         public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
