@@ -101,7 +101,8 @@
         {
             get
             {
-                return this.AllFields.Where(f => f.IsShared ?? false)
+                return this.AllFields
+                    .Where(f => !f.IsStandardValue && f.IsShared ?? false)
                     .Select(f => new ProxyFieldValue(f.FieldId, f.FieldValue)
                         {
                             NameHint = f.FieldName,
@@ -119,7 +120,7 @@
                     new ProxyItemVersion(CultureInfo.GetCultureInfo("en"), 1)
                     {
                         Fields = this.AllFields
-                            .Where(f => f.IsShared ?? false)
+                            .Where(f => !f.IsStandardValue && f.IsShared ?? false)
                             .Select(f => new ProxyFieldValue(f.FieldId, f.FieldValue)
                                 {
                                     NameHint = f.FieldName,
@@ -139,7 +140,7 @@
                     new ProxyItemVersion(CultureInfo.GetCultureInfo("en"), 1)
                     {
                         Fields = this.AllFields
-                            .Where(f => !(f.IsUnversioned ?? false))
+                            .Where(f => !f.IsStandardValue && !(f.IsUnversioned ?? false))
                             .Select(f => new ProxyFieldValue(f.FieldId, f.FieldValue)
                             {
                                 NameHint = f.FieldName,
@@ -174,6 +175,7 @@
                     FieldType = datum.Value["Type"].Value<string>(),
                     IsShared = datum.Value["Shared"].Value<bool>(),
                     IsUnversioned = datum.Value["Unversioned"].Value<bool>(),
+                    IsStandardValue = datum.Value["ContainsStandardValue"].Value<bool>(),
                     FieldValue = itemObject[datum.Key]?.Value<string>()
                 };
             }
