@@ -16,9 +16,9 @@
     {
         private readonly ItemServiceClient itemServiceClient;
 
-        public Rainbow(string instanceUrl, string domain, string userName, string password)
+        public Rainbow(string instanceUrl, string domain, string userName, string password, string databaseName)
         {
-            this.itemServiceClient = new ItemServiceClient(instanceUrl, domain, userName, password);
+            this.itemServiceClient = new ItemServiceClient(instanceUrl, domain, userName, password, databaseName);
         }
 
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options,
@@ -44,12 +44,12 @@
                 var memoryStream = new MemoryStream();
                 var itemData = new ItemServiceItemData(item)
                     {
-                        DatabaseName = "core"
+                        DatabaseName = this.itemServiceClient.DatabaseName
                     };
                 new YamlSerializationFormatter(null, null).WriteSerializedItem(itemData, memoryStream);
 
                 memoryStream.Position = 0;
-                int read = memoryStream.Read(buffer, Convert.ToInt32(offset), Convert.ToInt32(memoryStream.Length - offset));
+                int read = memoryStream.Read(buffer, Convert.ToInt32(offset), Convert.ToInt32(Math.Min(memoryStream.Length, buffer.Length) - offset));
                 bytesRead = read;
                 return NtStatus.Success;
             }
@@ -229,9 +229,9 @@
         public NtStatus GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features, out string fileSystemName,
             out uint maximumComponentLength, DokanFileInfo info)
         {
-            volumeLabel = null;
+            volumeLabel = $"{this.itemServiceClient.DatabaseName} on {this.itemServiceClient.HostName}";
+            fileSystemName = "Sitecore";
             features = FileSystemFeatures.None;
-            fileSystemName = null;
             maximumComponentLength = 0;
             return NtStatus.Success;
         }

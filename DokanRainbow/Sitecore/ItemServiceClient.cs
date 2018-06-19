@@ -15,7 +15,11 @@
 
         private readonly RestClient client;
 
-        public ItemServiceClient(string instanceUrl, string domain, string userName, string password)
+        public string DatabaseName { get; private set; }
+
+        public string HostName { get; private set; }
+
+        public ItemServiceClient(string instanceUrl, string domain, string userName, string password, string databaseName)
         {
             this.domain = domain;
             this.userName = userName;
@@ -24,6 +28,8 @@
                 {
                     CookieContainer = new CookieContainer()
                 };
+            this.HostName = this.client.BaseUrl.Host;
+            this.DatabaseName = databaseName;
         }
         
         public IEnumerable<dynamic> GetChildren(string itemPath)
@@ -33,7 +39,7 @@
             {
                 string itemId = item.ItemID.Value;
 
-                var request = new RestRequest($"/sitecore/api/ssc/item/{itemId}/children?database=core");
+                var request = new RestRequest($"/sitecore/api/ssc/item/{itemId}/children?database={DatabaseName}");
                 var response = this.client.Execute(request);
 
                 if (response.IsSuccessful)
@@ -51,7 +57,7 @@
         {
             if (this.EnsureLoggedIn())
             {
-                var request = new RestRequest($"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&database=core");
+                var request = new RestRequest($"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&database={DatabaseName}&includeMetadata=true");
                 var response = this.client.Execute(request);
 
                 if (response.IsSuccessful)
