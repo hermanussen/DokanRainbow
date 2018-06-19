@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Runtime.Caching;
     using Newtonsoft.Json;
     using RestSharp;
 
@@ -34,6 +35,58 @@
         
         public IEnumerable<dynamic> GetChildren(string itemPath)
         {
+            ObjectCache cache = MemoryCache.Default;
+            string cacheKey = $"children:{this.client.BaseUrl.AbsoluteUri}:{DatabaseName}:{itemPath}";
+            var result = cache[cacheKey] as IEnumerable<dynamic>;
+            if (result == null)
+            {
+                result = GetChildrenInternal(itemPath);
+                if (result != null)
+                {
+                    cache.Set(cacheKey, result, DateTime.Now.AddSeconds(5));
+                }
+            }
+
+            return result;
+        }
+
+        public dynamic GetItem(string itemPath)
+        {
+            ObjectCache cache = MemoryCache.Default;
+            string cacheKey = $"item:{this.client.BaseUrl.AbsoluteUri}:{DatabaseName}:{itemPath}";
+            var result = cache[cacheKey] as dynamic;
+            if (result == null)
+            {
+                result = GetItemInternal(itemPath);
+                if (result != null)
+                {
+                    cache.Set(cacheKey, result, DateTime.Now.AddSeconds(5));
+                }
+            }
+
+            return result;
+        }
+
+        private dynamic GetItemInternal(string itemPath)
+        {
+            if (this.EnsureLoggedIn())
+            {
+                var request =
+                    new RestRequest(
+                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&database={DatabaseName}&includeMetadata=true");
+                var response = this.client.Execute(request);
+
+                if (response.IsSuccessful)
+                {
+                    return JsonConvert.DeserializeObject(response.Content);
+                }
+            }
+
+            return null;
+        }
+
+        private IEnumerable<dynamic> GetChildrenInternal(string itemPath)
+        {
             dynamic item = GetItem(itemPath);
             if (item != null)
             {
@@ -53,22 +106,6 @@
             }
         }
 
-        public dynamic GetItem(string itemPath)
-        {
-            if (this.EnsureLoggedIn())
-            {
-                var request = new RestRequest($"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&database={DatabaseName}&includeMetadata=true");
-                var response = this.client.Execute(request);
-
-                if (response.IsSuccessful)
-                {
-                    return JsonConvert.DeserializeObject(response.Content);
-                }
-            }
-
-            return null;
-        }
-        
         private bool EnsureLoggedIn()
         {
             // Check if we are already logged in
