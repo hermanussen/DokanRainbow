@@ -15,10 +15,12 @@
     internal class Rainbow : IDokanOperations
     {
         private readonly ItemServiceClient itemServiceClient;
+        private readonly RainbowFormatterService rainbowFormatterService;
 
         public Rainbow(string instanceUrl, string domain, string userName, string password, string databaseName)
         {
             this.itemServiceClient = new ItemServiceClient(instanceUrl, domain, userName, password, databaseName);
+            this.rainbowFormatterService = new RainbowFormatterService();
         }
 
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options,
@@ -38,17 +40,11 @@
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
             var itemPath = PathUtil.GetItemPath(fileName);
-            dynamic item = this.itemServiceClient.GetItem(itemPath.path);
+            var item = this.itemServiceClient.GetItemInAllLanguages(itemPath.path);
             if (item != null && fileName.EndsWith(".yml"))
             {
-                var memoryStream = new MemoryStream();
-                var itemData = new ItemServiceItemData(item)
-                    {
-                        DatabaseName = this.itemServiceClient.DatabaseName
-                    };
-                new YamlSerializationFormatter(null, null).WriteSerializedItem(itemData, memoryStream);
+                var memoryStream = rainbowFormatterService.GetRainbowContents(item, this.itemServiceClient.DatabaseName);
 
-                memoryStream.Position = 0;
                 int read = memoryStream.Read(buffer, Convert.ToInt32(offset), Convert.ToInt32(Math.Min(memoryStream.Length, buffer.Length) - offset));
                 bytesRead = read;
                 return NtStatus.Success;

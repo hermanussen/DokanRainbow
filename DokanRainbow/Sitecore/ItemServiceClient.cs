@@ -16,6 +16,8 @@
 
         private readonly RestClient client;
 
+        private string[] allLanguages;
+
         public string DatabaseName { get; private set; }
 
         public string HostName { get; private set; }
@@ -50,14 +52,14 @@
             return result;
         }
 
-        public dynamic GetItem(string itemPath)
+        public dynamic GetItem(string itemPath, string language = "en")
         {
             ObjectCache cache = MemoryCache.Default;
-            string cacheKey = $"item:{this.client.BaseUrl.AbsoluteUri}:{DatabaseName}:{itemPath}";
+            string cacheKey = $"item:{this.client.BaseUrl.AbsoluteUri}:{DatabaseName}:{itemPath}:{language}";
             var result = cache[cacheKey] as dynamic;
             if (result == null)
             {
-                result = GetItemInternal(itemPath);
+                result = GetItemInternal(itemPath, language);
                 if (result != null)
                 {
                     cache.Set(cacheKey, result, DateTime.Now.AddSeconds(5));
@@ -67,13 +69,25 @@
             return result;
         }
 
-        private dynamic GetItemInternal(string itemPath)
+        public IDictionary<string, dynamic> GetItemInAllLanguages(string itemPath)
+        {
+            this.EnsureAllLanguages();
+            var result = new Dictionary<string, dynamic>();
+            foreach (string language in this.allLanguages)
+            {
+                result.Add(language, GetItem(itemPath, language));
+            }
+
+            return result;
+        }
+
+        private dynamic GetItemInternal(string itemPath, string language)
         {
             if (this.EnsureLoggedIn())
             {
                 var request =
                     new RestRequest(
-                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&database={DatabaseName}&includeMetadata=true");
+                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&language={language}&database={DatabaseName}&includeMetadata=true");
                 var response = this.client.Execute(request);
 
                 if (response.IsSuccessful)
@@ -122,6 +136,15 @@
             }
 
             return true;
+        }
+
+        private void EnsureAllLanguages()
+        {
+            if (this.allLanguages == null)
+            {
+                var languageItems = this.GetChildren("/system/Languages");
+                this.allLanguages = languageItems.Select(l => l.ItemName?.ToString()).Cast<string>().Where(l => l != null).ToArray();
+            }
         }
     }
 }
