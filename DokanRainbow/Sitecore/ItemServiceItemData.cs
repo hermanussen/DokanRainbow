@@ -9,11 +9,11 @@
 
     public class ItemServiceItemData : IItemData
     {
-        private readonly IDictionary<string, dynamic> items;
+        private readonly IDictionary<string, IDictionary<int, dynamic>> items;
 
         public IEnumerable<dynamic> AllFields { get; private set; }
 
-        public ItemServiceItemData(IDictionary<string,dynamic> items)
+        public ItemServiceItemData(IDictionary<string, IDictionary<int, dynamic>> items)
         {
             this.items = items;
             this.AllFields = this.GetFieldValues();
@@ -24,7 +24,7 @@
             get
             {
                 Guid result;
-                if (Guid.TryParse(this.items.Values.FirstOrDefault()?.ItemID?.ToString().Trim(new [] {'{', '}'}), out result))
+                if (Guid.TryParse(this.items.Values.SelectMany(v => v.Values).FirstOrDefault()?.ItemID?.ToString().Trim(new [] {'{', '}'}), out result))
                 {
                     return result;
                 }
@@ -38,7 +38,7 @@
             get
             {
                 Guid result;
-                if (Guid.TryParse(this.items.Values.FirstOrDefault()?.ParentID?.ToString().Trim(new[] { '{', '}' }), out result))
+                if (Guid.TryParse(this.items.Values.SelectMany(v => v.Values).FirstOrDefault()?.ParentID?.ToString().Trim(new[] { '{', '}' }), out result))
                 {
                     return result;
                 }
@@ -52,7 +52,7 @@
             get
             {
                 Guid result;
-                if (Guid.TryParse(this.items.Values.FirstOrDefault()?.TemplateID?.ToString().Trim(new[] { '{', '}' }), out result))
+                if (Guid.TryParse(this.items.Values.SelectMany(v => v.Values).FirstOrDefault()?.TemplateID?.ToString().Trim(new[] { '{', '}' }), out result))
                 {
                     return result;
                 }
@@ -63,7 +63,7 @@
 
         public string Path
         {
-            get { return this.items.Values.FirstOrDefault()?.ItemPath; }
+            get { return this.items.Values.SelectMany(v => v.Values).FirstOrDefault()?.ItemPath; }
         }
 
         public string SerializedItemId
@@ -80,7 +80,7 @@
 
         public string Name
         {
-            get { return this.items.Values.FirstOrDefault()?.ItemName; }
+            get { return this.items.Values.SelectMany(v => v.Values).FirstOrDefault()?.ItemName; }
         }
 
         public Guid BranchId
@@ -88,7 +88,7 @@
             get
             {
                 Guid result;
-                if (Guid.TryParse(this.items.Values.FirstOrDefault()?.BranchID?.ToString().Trim(new[] { '{', '}' }), out result))
+                if (Guid.TryParse(this.items.Values.SelectMany(v => v.Values).FirstOrDefault()?.BranchID?.ToString().Trim(new[] { '{', '}' }), out result))
                 {
                     return result;
                 }
@@ -132,16 +132,16 @@
         {
             get
             {
-                return items.Select(l => new ProxyItemVersion(CultureInfo.GetCultureInfo(l.Key), 1)
+                return items.SelectMany(l => l.Value.Select(v => new ProxyItemVersion(CultureInfo.GetCultureInfo(l.Key), v.Key)
                 {
                     Fields = this.AllFields
-                        .Where(f => l.Key.Equals(f.Language) && !f.IsStandardValue && !(f.IsUnversioned ?? false) && !(f.IsShared ?? false))
+                        .Where(f => l.Key.Equals(f.Language) && v.Key == f.Version && !f.IsStandardValue && !(f.IsUnversioned ?? false) && !(f.IsShared ?? false))
                         .Select(f => new ProxyFieldValue(f.FieldId, f.FieldValue)
                         {
                             NameHint = f.FieldName,
                             FieldType = f.FieldType
                         })
-                }).ToArray();
+                })).ToArray();
             }
         }
 
@@ -149,32 +149,37 @@
         {
             foreach (var item in items)
             {
-                JObject metaData = item.Value.metadata as JObject;
-                JObject itemObject = item.Value as JObject;
-                if (metaData == null || itemObject == null)
+                string language = item.Key;
+                foreach (KeyValuePair<int, dynamic> itemVersion in item.Value)
                 {
-                    yield break;
-                }
-
-                foreach (var datum in metaData)
-                {
-                    dynamic val = datum.Value as dynamic;
-                    if (val == null || itemObject[datum.Key]?.Value<string>() == null)
+                    JObject metaData = itemVersion.Value.metadata as JObject;
+                    JObject itemObject = itemVersion.Value as JObject;
+                    if (metaData == null || itemObject == null)
                     {
-                        continue;
+                        yield break;
                     }
 
-                    yield return new
+                    foreach (var datum in metaData)
                     {
-                        FieldName = datum.Key,
-                        FieldId = Guid.Parse(val.ID.ToString().Trim(new[] {'{', '}'})),
-                        FieldType = datum.Value["Type"].Value<string>(),
-                        IsShared = datum.Value["Shared"].Value<bool>(),
-                        IsUnversioned = datum.Value["Unversioned"].Value<bool>(),
-                        IsStandardValue = datum.Value["ContainsStandardValue"].Value<bool>(),
-                        FieldValue = itemObject[datum.Key]?.Value<string>(),
-                        Language = item.Key
-                    };
+                        dynamic val = datum.Value as dynamic;
+                        if (val == null || itemObject[datum.Key]?.Value<string>() == null)
+                        {
+                            continue;
+                        }
+
+                        yield return new
+                        {
+                            FieldName = datum.Key,
+                            FieldId = Guid.Parse(val.ID.ToString().Trim(new[] {'{', '}'})),
+                            FieldType = datum.Value["Type"].Value<string>(),
+                            IsShared = datum.Value["Shared"].Value<bool>(),
+                            IsUnversioned = datum.Value["Unversioned"].Value<bool>(),
+                            IsStandardValue = datum.Value["ContainsStandardValue"].Value<bool>(),
+                            FieldValue = itemObject[datum.Key]?.Value<string>(),
+                            Language = language,
+                            Version = itemVersion.Key
+                        };
+                    }
                 }
             }
         }

@@ -52,14 +52,14 @@
             return result;
         }
 
-        public dynamic GetItem(string itemPath, string language = "en")
+        public dynamic GetItem(string itemPath, string language = "en", int version = -1)
         {
             ObjectCache cache = MemoryCache.Default;
-            string cacheKey = $"item:{this.client.BaseUrl.AbsoluteUri}:{DatabaseName}:{itemPath}:{language}";
+            string cacheKey = $"item:{this.client.BaseUrl.AbsoluteUri}:{DatabaseName}:{itemPath}:{language}:{version}";
             var result = cache[cacheKey] as dynamic;
             if (result == null)
             {
-                result = GetItemInternal(itemPath, language);
+                result = GetItemInternal(itemPath, language, version);
                 if (result != null)
                 {
                     cache.Set(cacheKey, result, DateTime.Now.AddSeconds(5));
@@ -69,25 +69,45 @@
             return result;
         }
 
-        public IDictionary<string, dynamic> GetItemInAllLanguages(string itemPath)
+        public IDictionary<string, IDictionary<int,dynamic>> GetItemInAllLanguages(string itemPath)
         {
             this.EnsureAllLanguages();
-            var result = new Dictionary<string, dynamic>();
+            var result = new Dictionary<string, IDictionary<int, dynamic>>();
             foreach (string language in this.allLanguages)
             {
-                result.Add(language, GetItem(itemPath, language));
+                dynamic itemInLanguage = GetItem(itemPath, language);
+                if (itemInLanguage == null)
+                {
+                    continue;
+                }
+
+                int version = itemInLanguage.ItemVersion;
+                result.Add(language, new Dictionary<int, dynamic>()
+                    {
+                        { version, itemInLanguage }
+                    });
+                while (version > 1 && itemInLanguage != null)
+                {
+                    version--;
+                    itemInLanguage = GetItem(itemPath, language, version);
+                    if (itemInLanguage != null)
+                    {
+                        result[language].Add(version, itemInLanguage);
+                    }
+                }
             }
 
             return result;
         }
 
-        private dynamic GetItemInternal(string itemPath, string language)
+        private dynamic GetItemInternal(string itemPath, string language, int version)
         {
             if (this.EnsureLoggedIn())
             {
+                string versionStr = version >= 0 ? $"&version={version}" : string.Empty;
                 var request =
                     new RestRequest(
-                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&language={language}&database={DatabaseName}&includeMetadata=true");
+                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&language={language}&database={DatabaseName}&includeMetadata=true{versionStr}");
                 var response = this.client.Execute(request);
 
                 if (response.IsSuccessful)
