@@ -7,15 +7,15 @@
 
     public class RainbowFormatterService
     {
-        public MemoryStream GetRainbowContents(IDictionary<string, IDictionary<int, dynamic>> item, string databaseName)
+        public MemoryStream GetRainbowContents(IDictionary<string, IDictionary<int, dynamic>> items, string databaseName)
         {
             var memoryStream = new MemoryStream();
-            if (!item.Any())
+            if (!items.Any())
             {
                 return memoryStream;
             }
 
-            var itemData = new ItemServiceItemData(item)
+            var itemData = new ItemServiceItemData(items)
             {
                 DatabaseName = databaseName
             };

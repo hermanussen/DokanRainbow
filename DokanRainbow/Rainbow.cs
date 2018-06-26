@@ -10,6 +10,8 @@
     using DokanRainbow.Sitecore;
     using global::Rainbow.Storage.Sc;
     using global::Rainbow.Storage.Yaml;
+    using global::Sitecore;
+    using Convert = System.Convert;
     using FileAccess = DokanNet.FileAccess;
 
     internal class Rainbow : IDokanOperations
@@ -40,12 +42,13 @@
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
             var itemPath = PathUtil.GetItemPath(fileName);
-            var item = this.itemServiceClient.GetItemInAllLanguages(itemPath.path);
-            if (item != null && fileName.EndsWith(".yml"))
+            var items = this.itemServiceClient.GetItemInAllLanguages(itemPath.path);
+            if (items != null && fileName.EndsWith(".yml"))
             {
-                var memoryStream = rainbowFormatterService.GetRainbowContents(item, this.itemServiceClient.DatabaseName);
+                var memoryStream = rainbowFormatterService.GetRainbowContents(items, this.itemServiceClient.DatabaseName);
 
-                int read = memoryStream.Read(buffer, Convert.ToInt32(offset), Convert.ToInt32(Math.Min(memoryStream.Length, buffer.Length) - offset));
+                int count = Convert.ToInt32(Math.Min(memoryStream.Length, buffer.Length) - offset);
+                int read = count > 0 ? memoryStream.Read(buffer, Convert.ToInt32(offset), count) : 0;
                 bytesRead = read;
                 return NtStatus.Success;
             }
@@ -57,7 +60,7 @@
         public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
         {
             bytesWritten = 0;
-            return NtStatus.Success;
+            return NtStatus.AccessDenied;
         }
 
         public NtStatus FlushFileBuffers(string fileName, DokanFileInfo info)
@@ -77,9 +80,9 @@
                     fileInfo = new FileInformation()
                         {
                             FileName = $"{item.ItemName?.Value}.yml",
-                            CreationTime = item.__Created,
+                            CreationTime = DateUtil.IsoDateToDateTime(item.__Created?.ToString()),
                             Attributes = FileAttributes.Normal,
-                            LastWriteTime = item.__Updated,
+                            LastWriteTime = DateUtil.IsoDateToDateTime(item.__Updated?.ToString()),
                             Length = item.ToString().ToCharArray().Length
                         };
                 }
@@ -88,9 +91,9 @@
                     fileInfo = new FileInformation()
                         {
                             FileName = item.ItemName?.Value,
-                            CreationTime = item.__Created,
+                            CreationTime = DateUtil.IsoDateToDateTime(item.__Created?.ToString()),
                             Attributes = FileAttributes.Directory,
-                            LastWriteTime = item.__Updated,
+                            LastWriteTime = DateUtil.IsoDateToDateTime(item.__Updated?.ToString()),
                             Length = item.ToString().ToCharArray().Length
                         };
                 }
@@ -119,17 +122,17 @@
                     files.Add(new FileInformation()
                     {
                         FileName = child.ItemName?.Value,
-                        CreationTime = child.__Created,
+                        CreationTime = DateUtil.IsoDateToDateTime(child.__Created?.ToString()),
                         Attributes = FileAttributes.Directory,
-                        LastWriteTime = child.__Updated,
+                        LastWriteTime = DateUtil.IsoDateToDateTime(child.__Updated?.ToString()),
                         Length = child.ToString().ToCharArray().Length
                     });
                     files.Add(new FileInformation()
                     {
                         FileName = $"{child.ItemName?.Value}.yml",
-                        CreationTime = child.__Created,
+                        CreationTime = DateUtil.IsoDateToDateTime(child.__Created?.ToString()),
                         Attributes = FileAttributes.Normal,
-                        LastWriteTime = child.__Updated,
+                        LastWriteTime = DateUtil.IsoDateToDateTime(child.__Updated?.ToString()),
                         Length = child.ToString().ToCharArray().Length
                     });
                 }
@@ -144,9 +147,9 @@
                         files.Add(new FileInformation()
                         {
                             FileName = $"{item.ItemName?.Value}.yml",
-                            CreationTime = item.__Created,
+                            CreationTime = DateUtil.IsoDateToDateTime(item.__Created?.ToString()),
                             Attributes = FileAttributes.Normal,
-                            LastWriteTime = item.__Updated,
+                            LastWriteTime = DateUtil.IsoDateToDateTime(item.__Updated?.ToString()),
                             Length = item.ToString().ToCharArray().Length
                         });
                     }
@@ -155,9 +158,9 @@
                         files.Add(new FileInformation()
                         {
                             FileName = item.ItemName?.Value,
-                            CreationTime = item.__Created,
+                            CreationTime = DateUtil.IsoDateToDateTime(item.__Created?.ToString()),
                             Attributes = FileAttributes.Directory,
-                            LastWriteTime = item.__Updated,
+                            LastWriteTime = DateUtil.IsoDateToDateTime(item.__Updated?.ToString()),
                             Length = item.ToString().ToCharArray().Length
                         });
                     }
@@ -169,28 +172,28 @@
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
-            return NtStatus.Success;
+            return NtStatus.AccessDenied;
         }
 
         public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime,
             DokanFileInfo info)
         {
-            return NtStatus.Success;
+            return NtStatus.AccessDenied;
         }
 
         public NtStatus DeleteFile(string fileName, DokanFileInfo info)
         {
-            return NtStatus.Success;
+            return NtStatus.AccessDenied;
         }
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
-            return NtStatus.Success;
+            return NtStatus.AccessDenied;
         }
 
         public NtStatus MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
-            return NtStatus.Success;
+            return NtStatus.AccessDenied;
         }
 
         public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
@@ -227,7 +230,7 @@
         {
             volumeLabel = $"{this.itemServiceClient.DatabaseName} on {this.itemServiceClient.HostName}";
             fileSystemName = "Sitecore";
-            features = FileSystemFeatures.None;
+            features = FileSystemFeatures.ReadOnlyVolume;
             maximumComponentLength = 0;
             return NtStatus.Success;
         }

@@ -11,6 +11,8 @@
     {
         private readonly IDictionary<string, IDictionary<int, dynamic>> items;
 
+        private readonly string[] includedStandardFields = new[] { "__Created", "__Created by" };
+
         public IEnumerable<dynamic> AllFields { get; private set; }
 
         public ItemServiceItemData(IDictionary<string, IDictionary<int, dynamic>> items)
@@ -124,7 +126,9 @@
                             NameHint = f.FieldName,
                             FieldType = f.FieldType
                         })
-                }).ToArray();
+                })
+                .Where(v => v.Fields.Any(f => !includedStandardFields.Contains(f.NameHint)))
+                .ToArray();
             }
         }
 
@@ -141,7 +145,8 @@
                             NameHint = f.FieldName,
                             FieldType = f.FieldType
                         })
-                })).ToArray();
+                })
+                .Where(v => v.Fields.Any(f => !includedStandardFields.Contains(f.NameHint)))).ToArray();
             }
         }
 
@@ -162,7 +167,9 @@
                     foreach (var datum in metaData)
                     {
                         dynamic val = datum.Value as dynamic;
-                        if (val == null || itemObject[datum.Key]?.Value<string>() == null)
+                        if (val == null
+                            || itemObject[datum.Key]?.Value<string>() == null
+                            || (datum.Key.StartsWith("__") && !includedStandardFields.Contains(datum.Key)))
                         {
                             continue;
                         }

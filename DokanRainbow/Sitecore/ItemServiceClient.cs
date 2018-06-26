@@ -76,7 +76,7 @@
             foreach (string language in this.allLanguages)
             {
                 dynamic itemInLanguage = GetItem(itemPath, language);
-                if (itemInLanguage == null)
+                if (itemInLanguage == null || string.IsNullOrWhiteSpace(itemInLanguage.__Created?.ToString()))
                 {
                     continue;
                 }
@@ -107,7 +107,7 @@
                 string versionStr = version >= 0 ? $"&version={version}" : string.Empty;
                 var request =
                     new RestRequest(
-                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&language={language}&database={DatabaseName}&includeMetadata=true{versionStr}");
+                        $"/sitecore/api/ssc/item/?path=/sitecore{itemPath}&language={language}&database={DatabaseName}&includeStandardTemplateFields=true&includeMetadata=true{versionStr}");
                 var response = this.client.Execute(request);
 
                 if (response.IsSuccessful)
