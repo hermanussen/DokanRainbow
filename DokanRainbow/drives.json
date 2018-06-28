@@ -1,0 +1,28 @@
+﻿{
+  "drives": [
+    {
+      "mountPoint": "s:",
+      "url": "https://localhost/",
+      "domain":  "sitecore", 
+      "userName": "admin",
+      "password": "c",
+      "databaseName": "master"
+    },
+    {
+      "mountPoint": "t:",
+      "url": "https://localhost/",
+      "domain": "sitecore",
+      "userName": "admin",
+      "password": "c",
+      "databaseName": "web"
+    },
+    {
+      "mountPoint": "u:",
+      "url": "https://localhost/",
+      "domain": "sitecore",
+      "userName": "admin",
+      "password": "c",
+      "databaseName": "core"
+    }
+  ]
+}

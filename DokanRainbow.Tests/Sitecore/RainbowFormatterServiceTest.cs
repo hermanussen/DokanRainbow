@@ -15,19 +15,25 @@
         [Fact]
         public void ShouldGetRainbowContentsWithNoFields()
         {
-            var input = new Dictionary<string, dynamic>();
+            var input = new Dictionary<string, IDictionary<int,dynamic>>();
             input.Add("en",
-                JObject.FromObject(new
+                new Dictionary<int, dynamic>()
                 {
-                    ItemID = "a4960f3b-7250-42bb-8df5-2789dcf613ea",
-                    ItemName = "Example item",
-                    ItemPath = "/sitecore/templates/Example item",
-                    TemplateID = "292eb157-5305-4da3-9916-3015d8d32855",
-                    ParentID = "3c1715fe-6a13-4fcf-845f-de308ba9741d",
-                    metadata = new
                     {
+                        1,
+                        JObject.FromObject(new
+                            {
+                                ItemID = "a4960f3b-7250-42bb-8df5-2789dcf613ea",
+                                ItemName = "Example item",
+                                ItemPath = "/sitecore/templates/Example item",
+                                TemplateID = "292eb157-5305-4da3-9916-3015d8d32855",
+                                ParentID = "3c1715fe-6a13-4fcf-845f-de308ba9741d",
+                                metadata = new
+                                {
+                                }
+                            })
                     }
-                }));
+                });
 
             var memoryStream = new RainbowFormatterService().GetRainbowContents(input, "master");
             using (StreamReader sr = new StreamReader(memoryStream))
@@ -49,7 +55,7 @@ Languages:
         [Fact]
         public void ShouldGetRainbowContentsWithMultipleLanguages()
         {
-            var input = new Dictionary<string, dynamic>();
+            var input = new Dictionary<string, IDictionary<int, dynamic>>();
             input.Add("en",
                 JObject.FromObject(new
                 {
@@ -87,7 +93,7 @@ Languages:
         [Fact]
         public void ShouldGetRainbowContentsWithSharedField()
         {
-            var input = new Dictionary<string, dynamic>();
+            var input = new Dictionary<string, IDictionary<int, dynamic>>();
             input.Add("en",
                 JObject.FromObject(new
                 {
@@ -137,7 +143,7 @@ Languages:
         [Fact]
         public void ShouldGetRainbowContents()
         {
-            var input = new Dictionary<string, dynamic>();
+            var input = new Dictionary<string, IDictionary<int, dynamic>>();
             input.Add("en",
                 JObject.FromObject(new
                 {
