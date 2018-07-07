@@ -24,7 +24,7 @@ You should then be able to go to use any tools that can deal with files to navig
 
 ## Screenshots
 
-![WinMerge_screenshot.png](https://raw.githubusercontent.com/hermanussen/DokanRainbow/master/img/Command_Prompt_screenshot.png)
+![WinMerge screenshot](https://raw.githubusercontent.com/hermanussen/DokanRainbow/master/img/WinMerge_screenshot.png)
 
 
 ![Command prompt screenshot](https://raw.githubusercontent.com/hermanussen/DokanRainbow/master/img/Command_Prompt_screenshot.png)
