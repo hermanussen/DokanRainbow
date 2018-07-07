@@ -1,27 +1,29 @@
 ﻿{
+  "ignoreHttpsInvalidCertificates": true,
+  "cacheTimeSeconds": 5,
   "drives": [
     {
-      "mountPoint": "s:",
-      "url": "https://localhost/",
-      "domain":  "sitecore", 
+      "mountPoint": "v:\\",
+      "url": "https://localhost",
+      "domain": "sitecore",
       "userName": "admin",
-      "password": "c",
+      "password": "b",
       "databaseName": "master"
     },
     {
-      "mountPoint": "t:",
-      "url": "https://localhost/",
+      "mountPoint": "w:\\",
+      "url": "https://localhost",
       "domain": "sitecore",
       "userName": "admin",
-      "password": "c",
+      "password": "b",
       "databaseName": "web"
     },
     {
-      "mountPoint": "u:",
-      "url": "https://localhost/",
+      "mountPoint": "x:\\",
+      "url": "https://localhost",
       "domain": "sitecore",
       "userName": "admin",
-      "password": "c",
+      "password": "b",
       "databaseName": "core"
     }
   ]

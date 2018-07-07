@@ -3,25 +3,31 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Security.AccessControl;
-    using System.Text;
     using DokanNet;
     using DokanRainbow.Sitecore;
-    using global::Rainbow.Storage.Sc;
-    using global::Rainbow.Storage.Yaml;
     using global::Sitecore;
     using Convert = System.Convert;
     using FileAccess = DokanNet.FileAccess;
 
+    /// <summary>
+    /// Implements the interface that is needed to implement operations in Dokany.
+    /// </summary>
     internal class Rainbow : IDokanOperations
     {
+        /// <summary>
+        /// Used for getting items from Sitecore.
+        /// </summary>
         private readonly ItemServiceClient itemServiceClient;
+
+        /// <summary>
+        /// Used for formatting Sitecore data into the Rainbow file format.
+        /// </summary>
         private readonly RainbowFormatterService rainbowFormatterService;
 
-        public Rainbow(string instanceUrl, string domain, string userName, string password, string databaseName)
+        public Rainbow(string instanceUrl, string domain, string userName, string password, string databaseName, int cacheTimeSeconds)
         {
-            this.itemServiceClient = new ItemServiceClient(instanceUrl, domain, userName, password, databaseName);
+            this.itemServiceClient = new ItemServiceClient(instanceUrl, domain, userName, password, databaseName, cacheTimeSeconds);
             this.rainbowFormatterService = new RainbowFormatterService();
         }
 
@@ -107,8 +113,6 @@
             return this.FindFilesWithPattern(fileName, "*", out files, info);
         }
 
-        private List<string> logs = new List<string>();
-
         public NtStatus FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
         {
             files = new List<FileInformation>();
@@ -116,17 +120,25 @@
             var itemPath = PathUtil.GetItemPath(fileName, searchPattern);
             if (itemPath.childrenOf)
             {
+                // Return all children as files/folders
                 var children = this.itemServiceClient.GetChildren(itemPath.path);
                 foreach (dynamic child in children)
                 {
-                    files.Add(new FileInformation()
+                    // If there are no children, than it's pointless to offer a folder to go deeper
+                    if (bool.TrueString.Equals(child.HasChildren?.Value, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        FileName = child.ItemName?.Value,
-                        CreationTime = DateUtil.IsoDateToDateTime(child.__Created?.ToString()),
-                        Attributes = FileAttributes.Directory,
-                        LastWriteTime = DateUtil.IsoDateToDateTime(child.__Updated?.ToString()),
-                        Length = child.ToString().ToCharArray().Length
-                    });
+                        // Add the directory, so child items can be accessed
+                        files.Add(new FileInformation()
+                        {
+                            FileName = child.ItemName?.Value,
+                            CreationTime = DateUtil.IsoDateToDateTime(child.__Created?.ToString()),
+                            Attributes = FileAttributes.Directory,
+                            LastWriteTime = DateUtil.IsoDateToDateTime(child.__Updated?.ToString()),
+                            Length = child.ToString().ToCharArray().Length
+                        });
+                    }
+
+                    // Add the Rainbow YAML file
                     files.Add(new FileInformation()
                     {
                         FileName = $"{child.ItemName?.Value}.yml",

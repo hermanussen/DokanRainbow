@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DokanRainbow
+﻿namespace DokanRainbow
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
     using System.IO;
     using System.Net;
     using DokanNet;
@@ -19,26 +16,33 @@ namespace DokanRainbow
             {
                 using (StreamReader r = new StreamReader("drives.json"))
                 {
-                    dynamic drives = JsonConvert.DeserializeObject(r.ReadToEnd());
+                    // Read configuration
+                    dynamic jsonConfig = JsonConvert.DeserializeObject(r.ReadToEnd());
 
-                    // Ignore if SSL certificate is not valid
-                    ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+                    if (jsonConfig.ignoreHttpsInvalidCertificates.Value)
+                    {
+                        // Ignore if SSL certificate is not valid
+                        ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+                    }
 
+                    // Setup tasks, so that drives can be mounted and run simultaneously
                     List<Task> drivesToMount = new List<Task>();
-                    foreach (dynamic drive in drives.drives)
+                    foreach (dynamic drive in jsonConfig.drives)
                     {
                         var rainbowDrive = new Rainbow(
-                            drive.url?.ToString(),
-                            drive.domain?.ToString(),
-                            drive.userName?.ToString(),
-                            drive.password?.ToString(),
-                            drive.databaseName?.ToString());
-                        drivesToMount.Add(Mount(rainbowDrive, drive.mountPoint));
+                            (string) drive.url,
+                            (string) drive.domain,
+                            (string) drive.userName,
+                            (string) drive.password,
+                            (string) drive.databaseName,
+                            (int) jsonConfig.cacheTimeSeconds);
+                        drivesToMount.Add(Mount(rainbowDrive, (string) drive.mountPoint));
                     }
                     
+                    // Only if all drive mounts are stopped, the program will be stopped
                     Task.WaitAll(drivesToMount.ToArray());
 
-                    Console.WriteLine(@"Success");
+                    Console.WriteLine(@"Program terminated");
                 }
             }
             catch (DokanException ex)
@@ -49,7 +53,7 @@ namespace DokanRainbow
 
         private async static Task Mount(Rainbow rainbow, string mountPoint)
         {
-            await Task.Run(() => rainbow.Mount(mountPoint, DokanOptions.DebugMode, 5));
+            await Task.Run(() => rainbow.Mount(mountPoint, DokanOptions.StderrOutput, 5));
         }
     }
 }

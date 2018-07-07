@@ -7,13 +7,27 @@
     using global::Rainbow.Model;
     using Newtonsoft.Json.Linq;
 
+    /// <summary>
+    /// Provides the implementation of the data that Rainbow needs to serialize the item.
+    /// </summary>
     public class ItemServiceItemData : IItemData
     {
+        /// <summary>
+        /// A dictionary of the same item in different languages and versions.
+        /// The key of the first dictionary contains the language.
+        /// The item versions are the key of the second dictionary.
+        /// </summary>
         private readonly IDictionary<string, IDictionary<int, dynamic>> items;
 
-        private readonly string[] includedStandardFields = new[] { "__Created", "__Created by" };
+        /// <summary>
+        /// These fields are excluded by default.
+        /// </summary>
+        private readonly string[] includedStandardFields = { "__Created", "__Created by" };
 
-        public IEnumerable<dynamic> AllFields { get; private set; }
+        /// <summary>
+        /// Holds a list of all field values, so they can be queried when requested as regular, unversioned and shared fields.
+        /// </summary>
+        public IEnumerable<dynamic> AllFields { get; }
 
         public ItemServiceItemData(IDictionary<string, IDictionary<int, dynamic>> items)
         {

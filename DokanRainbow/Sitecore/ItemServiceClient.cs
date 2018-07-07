@@ -18,11 +18,13 @@
 
         private string[] allLanguages;
 
+        private int cacheTimeSeconds;
+
         public string DatabaseName { get; private set; }
 
         public string HostName { get; private set; }
 
-        public ItemServiceClient(string instanceUrl, string domain, string userName, string password, string databaseName)
+        public ItemServiceClient(string instanceUrl, string domain, string userName, string password, string databaseName, int cacheTimeSeconds = 5)
         {
             this.domain = domain;
             this.userName = userName;
@@ -33,6 +35,7 @@
                 };
             this.HostName = this.client.BaseUrl.Host;
             this.DatabaseName = databaseName;
+            this.cacheTimeSeconds = cacheTimeSeconds;
         }
         
         public IEnumerable<dynamic> GetChildren(string itemPath)
@@ -45,7 +48,7 @@
                 result = GetChildrenInternal(itemPath);
                 if (result != null)
                 {
-                    cache.Set(cacheKey, result, DateTime.Now.AddSeconds(5));
+                    cache.Set(cacheKey, result, DateTime.Now.AddSeconds(this.cacheTimeSeconds));
                 }
             }
 
@@ -62,7 +65,7 @@
                 result = GetItemInternal(itemPath, language, version);
                 if (result != null)
                 {
-                    cache.Set(cacheKey, result, DateTime.Now.AddSeconds(5));
+                    cache.Set(cacheKey, result, DateTime.Now.AddSeconds(this.cacheTimeSeconds));
                 }
             }
 
